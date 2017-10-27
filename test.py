@@ -8,7 +8,9 @@ from sklearn.model_selection import KFold
 from sklearn.metrics import make_scorer, mean_squared_error
 from sklearn.linear_model import Lasso
 import math
-from numpy import mean
+from numpy import mean, size
+import xgboost as xgb
+
 
 # A function to calculate Root Mean Squared Logarithmic Error (RMSLE)
 
@@ -332,23 +334,13 @@ def main():
     
     train_set = train_set.drop('MiscFeature', axis=1)
     
-    numeric_feats = train_set.dtypes[train_set.dtypes != "object"].index
-
-    t = train_set[numeric_feats].quantile(.95)
-    use_max_scater = t[t == 0].index
-    use_95_scater = t[t != 0].index
-    train_set[use_max_scater] = train_set[use_max_scater]/train_set[use_max_scater].max()
-    train_set[use_95_scater] = train_set[use_95_scater]/train_set[use_95_scater].quantile(.95)
-    
-    
-    
     sqrt = ['GrLivArea']
-    log1p = ['TotRmsAbvGrd', 'LotArea']
+    log1p = ['TotRmsAbvGrd', 'LotArea', 'LotFrontage']
     sqr = ['OverallQual']
     
     train_set.loc[:, sqrt] = np.sqrt(train_set.loc[:, sqrt])
     train_set.loc[:, log1p] = np.log1p(train_set.loc[:, log1p])
-    train_set.loc[:, sqr] = np.square(train_set.loc[:, sqr])
+    train_set.loc[:, sqr] = np.square(np.square(train_set.loc[:, sqr]))
 
 
 
@@ -382,34 +374,58 @@ def main():
     X_train = X.copy()
     print(X_train.shape)
     
-    y = np.log1p(train_set.SalePrice)
+    y = np.log(train_set.SalePrice)
     
     X_train = X_train.drop('Id', axis=1)
     X_train = X_train.drop('SalePrice', axis=1)
     X_train = X_train.drop('MoSold', axis=1)
 #     X_train = X_train.drop('MSSubClass', axis=1)
     
-    kfold = KFold(100)
-    res = []
+    kfold = KFold(2)
+#     res = []
     
-    yy_pred = train_set.SalePrice.copy()
+    yy_pred = []
+    yy_pred_xgb = []
     
     for train_index, test_index in kfold.split(X_train):
         XX_train, XX_test = X_train.ix[train_index], X_train.ix[test_index]
-        yy_train, yy_test = y[train_index], y[test_index]
+        yy_train = y[train_index]#, yy_test = y[train_index], y[test_index]
         model_lasso = Lasso(alpha=5e-4, max_iter=1e5).fit(XX_train, yy_train)
-        p_pred = np.expm1(model_lasso.predict(XX_test))
-        for i in test_index:
-            yy_pred[i] = p_pred[i - test_index[0]]
-        print(rmsle(p_pred, np.expm1(yy_test)))
-        res.append(rmsle(p_pred, np.expm1(yy_test)))
-    
-    print("ResAll = ", rmsle(yy_pred, np.expm1(y)))
-    sns.jointplot(yy_pred, np.expm1(y))
-    print("ResMean = ", np.mean(np.square(res)))
+        p_pred = model_lasso.predict(XX_test)
+        model_xgb = xgb.XGBRegressor(colsample_bytree=0.2,gamma=0.0,learning_rate=0.01,max_depth=4,min_child_weight=1.5,n_estimators=7200,reg_alpha=0.9,reg_lambda=0.6,subsample=0.2,seed=42,silent=1).fit(XX_train, yy_train)
+        xgb_pred = model_xgb.predict(XX_test)
+        
+        yy_pred.extend(p_pred)
+        yy_pred_xgb.extend(xgb_pred)
+#         for i in test_index:
+#             yy_pred[i] = p_pred[i - test_index[0]]
+#             yy_pred_xgb[i] = xgb_pred[i - test_index[0]]
+            
+#         print(rmsle(p_pred, np.expm1(yy_test)))
+#         res.append(rmsle(p_pred, np.expm1(yy_test)))
+    kk50 = [(x+y)/2 for x,y in zip(yy_pred, yy_pred_xgb)]
+    kk25 = [(x/4+3*y/4) for x,y in zip(yy_pred, yy_pred_xgb)]
+    kk75 = [(3*x/4+y/4) for x,y in zip(yy_pred, yy_pred_xgb)]
+    print("ResLasso = ", rmsle(np.exp(yy_pred), np.exp(y)))
+    print("ResXGB = ", rmsle(np.exp(yy_pred_xgb), np.exp(y)))
+    print("ResMean50 = ", rmsle(np.exp(kk50), np.exp(y)))
+    print("ResMean25 = ", rmsle(np.exp(kk25), np.exp(y)))
+    print("ResMean75 = ", rmsle(np.exp(kk75), np.exp(y)))
+#     sns.jointplot(yy_pred, np.expm1(y))
+#     print("ResMean = ", np.mean(np.square(res)))
 #     model_lasso = Lasso(alpha=5e-4, max_iter=50000).fit(X_train, y)
 #     p_pred = np.expm1(model_lasso.predict(X_train))
 #     print(rmsle(p_pred, np.expm1(y)))
+    
+#     y_test = label_df
+#     print("XGBoost score on training set: ", rmse(y_test, y_pred))
+#         
+#     y_pred_xgb = regr.predict(test_df_munged)
+    
+    # Run prediction on training set to get a rough idea of how well it does.
+    
+
+
     plt.show()
     
     

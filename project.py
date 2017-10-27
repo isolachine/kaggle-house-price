@@ -4,6 +4,7 @@ from sklearn.cross_validation import cross_val_score
 from sklearn.model_selection import KFold
 from sklearn.metrics import make_scorer, mean_squared_error
 from sklearn.linear_model import Lasso
+import xgboost as xgb
 
 # A function to calculate Root Mean Squared Logarithmic Error (RMSLE)
 
@@ -329,10 +330,13 @@ def mainTest():
     Sale_New = pd.DataFrame(np.zeros((data.shape[0], 1)), columns=['Sale_New'])
     Sale_New[data.SaleCondition == 'Partial'] = 1
     data['Sale_New'] = Sale_New
-    data['GrLivArea'] = np.sqrt(data['GrLivArea'])
-    data['LotFrontage'] = np.log1p(data['LotFrontage'])
-    data['LotArea'] = np.log1p(data['LotArea'])
+    sqrt = ['GrLivArea']
+    log1p = ['LotArea', 'LotFrontage']
+    sqr = ['OverallQual']
     
+    data.loc[:, sqrt] = np.sqrt(data.loc[:, sqrt])
+    data.loc[:, log1p] = np.log1p(data.loc[:, log1p])
+    data.loc[:, sqr] = np.square(data.loc[:, sqr])
     
     X = pd.get_dummies(data, sparse=True)
     X_train = X[:train_set.shape[0]]
@@ -344,9 +348,14 @@ def mainTest():
     y = np.log1p(train_set.SalePrice)
     
     model_lasso = Lasso(alpha=5e-4, max_iter=50000).fit(X_train, y)
+    model_xgb = xgb.XGBRegressor(colsample_bytree=0.2,gamma=0.0,learning_rate=0.01,max_depth=4,min_child_weight=1.5,n_estimators=7200,reg_alpha=0.9,reg_lambda=0.6,subsample=0.2,seed=42,silent=1).fit(X_train, y)
+    
     p = np.expm1(model_lasso.predict(X_test))
-    solution = pd.DataFrame({"Id":test_set.Id, "SalePrice":p}, columns=['Id', 'SalePrice'])
-    solution.to_csv("lasso_sol5.csv", index=False)
+    p_xgb = np.expm1(model_xgb.predict(X_test))
+    pp = [(x+y)/2 for x,y in zip(p, p_xgb)]
+    
+    solution = pd.DataFrame({"Id":test_set.Id, "SalePrice":pp}, columns=['Id', 'SalePrice'])
+    solution.to_csv("lasso_sol7.csv", index=False)
     
     
 mainTest()
