@@ -1,5 +1,4 @@
 import pandas as pd
-import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.cross_validation import cross_val_score
 from sklearn.model_selection import KFold
@@ -314,124 +313,26 @@ def mainTest():
     data = data.drop("Id", 1)
     data = data.drop('MoSold', axis=1)
     data = data.drop('MiscFeature', axis=1)
-#     data = data.drop('MSSubClass', axis=1)
-
-    data = data.replace({'CentralAir': {'Y': 1, 'N': 0}})
-    data = data.replace({'PavedDrive': {'Y': 1, 'P': 0, 'N': 0}})
-    data = data.replace({'MSSubClass': {20: 'SubClass_20',
-                                            30: 'SubClass_30',
-                                            40: 'SubClass_40',
-                                            45: 'SubClass_45',
-                                            50: 'SubClass_50',
-                                            60: 'SubClass_60',
-                                            70: 'SubClass_70',
-                                            75: 'SubClass_75',
-                                            80: 'SubClass_80',
-                                            85: 'SubClass_85',
-                                            90: 'SubClass_90',
-                                           120: 'SubClass_120',
-                                           150: 'SubClass_150',
-                                           160: 'SubClass_160',
-                                           180: 'SubClass_180',
-                                           190: 'SubClass_190'}})
+    data = data.drop('MSSubClass', axis=1)
     
-    data = data.replace({'Utilities': {'AllPub': 1, 'NoSeWa': 0, 'NoSewr': 0, 'ELO': 0},
-                             'Street': {'Pave': 1, 'Grvl': 0 },
-                             'FireplaceQu': {'Ex': 5, 
-                                            'Gd': 4, 
-                                            'TA': 3, 
-                                            'Fa': 2,
-                                            'Po': 1,
-                                            'NoFireplace': 0 
-                                            },
-                             'Fence': {'GdPrv': 2, 
-                                       'GdWo': 2, 
-                                       'MnPrv': 1, 
-                                       'MnWw': 1,
-                                       'NoFence': 0},
-                             'ExterQual': {'Ex': 5, 
-                                            'Gd': 4, 
-                                            'TA': 3, 
-                                            'Fa': 2,
-                                            'Po': 1
-                                            },
-                             'ExterCond': {'Ex': 5, 
-                                            'Gd': 4, 
-                                            'TA': 3, 
-                                            'Fa': 2,
-                                            'Po': 1
-                                            },
-                             'BsmtQual': {'Ex': 5, 
-                                            'Gd': 4, 
-                                            'TA': 3, 
-                                            'Fa': 2,
-                                            'Po': 1,
-                                            'NoBsmt': 0},
-                             'BsmtExposure': {'Gd': 3, 
-                                            'Av': 2, 
-                                            'Mn': 1,
-                                            'No': 0,
-                                            'NoBsmt': 0},
-                             'BsmtCond': {'Ex': 5, 
-                                            'Gd': 4, 
-                                            'TA': 3, 
-                                            'Fa': 2,
-                                            'Po': 1,
-                                            'NoBsmt': 0},
-                             'GarageQual': {'Ex': 5, 
-                                            'Gd': 4, 
-                                            'TA': 3, 
-                                            'Fa': 2,
-                                            'Po': 1,
-                                            'NoGarage': 0},
-                             'GarageCond': {'Ex': 5, 
-                                            'Gd': 4, 
-                                            'TA': 3, 
-                                            'Fa': 2,
-                                            'Po': 1,
-                                            'NoGarage': 0},
-                             'KitchenQual': {'Ex': 5, 
-                                            'Gd': 4, 
-                                            'TA': 3, 
-                                            'Fa': 2,
-                                            'Po': 1},
-                             'Functional': {'Typ': 0,
-                                            'Min1': 1,
-                                            'Min2': 1,
-                                            'Mod': 2,
-                                            'Maj1': 3,
-                                            'Maj2': 4,
-                                            'Sev': 5,
-                                            'Sal': 6}                             
-                            })
     data = data.fillna(0)
     
-#         
-#     numeric_feats = data.dtypes[data.dtypes != "object"].index
-# 
-#     t = data[numeric_feats].quantile(.95)
-#     use_max_scater = t[t == 0].index
-#     use_95_scater = t[t != 0].index
-#     data[use_max_scater] = data[use_max_scater]/data[use_max_scater].max()
-#     data[use_95_scater] = data[use_95_scater]/data[use_95_scater].quantile(.95)
-#     
-
-    
-    sqrt = ['GrLivArea']
-    log1p = ['TotRmsAbvGrd', 'LotArea']
-    sqr = ['OverallQual']
-    data.loc[:, sqrt] = np.sqrt(data.loc[:, sqrt])
-    data.loc[:, log1p] = np.log1p(data.loc[:, log1p])
-    data.loc[:, sqr] = np.square(data.loc[:, sqr])
+    data = data.replace({'CentralAir': {'Y': 1, 'N': 0}})
     
     Neighborhood_Good = pd.DataFrame(np.zeros((data.shape[0], 1)), columns=['Neighborhood_Good'])
     Neighborhood_Good[data.Neighborhood == 'NridgHt'] = 1
     Neighborhood_Good[data.Neighborhood == 'StoneBr'] = 1
     Neighborhood_Good[data.Neighborhood == 'NoRidge'] = 1
+
     data['Neighborhood_Good'] = Neighborhood_Good
+
     Sale_New = pd.DataFrame(np.zeros((data.shape[0], 1)), columns=['Sale_New'])
     Sale_New[data.SaleCondition == 'Partial'] = 1
     data['Sale_New'] = Sale_New
+    data['GrLivArea'] = np.sqrt(data['GrLivArea'])
+    data['LotFrontage'] = np.log1p(data['LotFrontage'])
+    data['LotArea'] = np.log1p(data['LotArea'])
+    
     
     X = pd.get_dummies(data, sparse=True)
     X_train = X[:train_set.shape[0]]
@@ -442,16 +343,10 @@ def mainTest():
     
     y = np.log1p(train_set.SalePrice)
     
-#     alphas = [1e-4, 5e-4, 1e-3, 5e-3]
-#     cv_lasso = [rmse_cv(Lasso(alpha=alpha, max_iter=50000), X_train, y) for alpha in alphas]
-#     plt.figure(1)
-#     pd.Series(cv_lasso, index = alphas).plot()
-#     plt.show()
-     
-    model_lasso = Lasso(alpha=5e-4, max_iter=1e5).fit(X_train, y)
+    model_lasso = Lasso(alpha=5e-4, max_iter=50000).fit(X_train, y)
     p = np.expm1(model_lasso.predict(X_test))
     solution = pd.DataFrame({"Id":test_set.Id, "SalePrice":p}, columns=['Id', 'SalePrice'])
-    solution.to_csv("lasso_sol6.csv", index=False)
+    solution.to_csv("lasso_sol5.csv", index=False)
     
     
 mainTest()
