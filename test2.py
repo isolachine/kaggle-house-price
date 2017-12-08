@@ -235,10 +235,21 @@ def rmse_cv(model, X, y):
 
 
 def main():
+#     train = pd.read_csv('train.csv')
+#     test = pd.read_csv('test.csv')
+    
     train_set = pd.read_csv('train.csv')
+    #Save the 'Id' column
+#     train_ID = train['Id']
+#     test_ID = test['Id']
+
+    #Now drop the  'Id' colum since it's unnecessary for  the prediction process.
+#     train.drop("Id", axis = 1, inplace = True)
+#     test.drop("Id", axis = 1, inplace = True)
+    
     train_set = train_set.fillna(0)
     # OUTLIERS
-    outliers_id = np.array([1299,524,633,1325,31])
+    outliers_id = np.array([309,440,319,1441,1164,1187,916,5,545,810,1416,480,582,1191,1363,381,330,727,534,946,663,67,659,1023,667,1381,4,1384,561,1212,729,629,813,875,715,711,1063,917,1454,589,496,1433,411,969,463,31,1325,633,524,1299])
     outliers_id = outliers_id - 1  # id starts with 1, index starts with 0
     train_set = train_set.drop(train_set.index[outliers_id])
     train_set.index = range(len(train_set))
@@ -424,9 +435,7 @@ def main():
     
     # Run prediction on training set to get a rough idea of how well it does.
     
-#     
-#     solution = pd.DataFrame({"real":np.exp(y),"SalePrice":np.exp(kk75)}, columns=['SalePrice', 'real'])
-#     solution.to_csv("hahaha.csv", index=False)
+
 
     plt.show()
     
